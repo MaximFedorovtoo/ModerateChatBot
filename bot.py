@@ -2,7 +2,20 @@ import telebot
 from nltk.tokenize import word_tokenize
 import time
 import config
+import logging
+import filters
+from aiogram import Bot, Dispatcher, executor, types
+import config as cfg
+from filters import IsAdminFilter
+# log level
+logging.basicConfig(level=logging.INFO)
+
+# bot init
 bot = Bot(token=config.TOKEN)
+dp = Dispatcher(bot)
+
+# activate filters
+dp.filters_factory.bind(IsAdminFilter)
 
 bad_words = ['слово1', 'слово2', 'слово3']
 
