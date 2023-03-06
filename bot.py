@@ -1,4 +1,5 @@
 import logging
+import nltk
 import asyncio
 import config
 from aiogram import Bot, Dispatcher, types
@@ -6,16 +7,20 @@ from aiogram.utils import executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from nltk.tokenize import word_tokenize
 import time
+from aiogram import types
+from aiogram.dispatcher import filters
+from aiogram import types
+from aiogram.dispatcher.filters import ContentTypeFilter
 
 API_TOKEN = config.TOKEN
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
-bot = Bot(token=API_TOKEN)
+bot = Bot(token = API_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-bad_words = ['слово1', 'слово2', 'слово3']
+bad_words = ['сучка', 'слово2', 'слово3']
 
 user_rating = {}
 
@@ -66,7 +71,7 @@ async def handle_message(message: types.Message):
             ban_user(user_id)
     await message.answer(f"Ваш рейтинг: {calculate_user_rating(user_id)}")
 
-@dp.message_handler(func=lambda message: True, content_types=['new_chat_members'])
+@dp.message_handler(ContentTypeFilter(types.ContentType.NEW_CHAT_MEMBERS))
 async def handle_new_member(message: types.Message):
     chat_id = message.chat.id
     new_members = message.new_chat_members
@@ -75,7 +80,3 @@ async def handle_new_member(message: types.Message):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
-
-
-
-
