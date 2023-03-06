@@ -1,21 +1,19 @@
-import telebot
+import logging
+import asyncio
+import config
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from nltk.tokenize import word_tokenize
 import time
-import config
-import logging
-import filters
-from aiogram import Bot, Dispatcher, executor, types
-import config as cfg
-from filters import IsAdminFilter
-# log level
-logging.basicConfig(level=logging.INFO)
 
-# bot init
-bot = Bot(token=config.TOKEN)
-dp = Dispatcher(bot)
+API_TOKEN = config.TOKEN
 
-# activate filters
-dp.filters_factory.bind(IsAdminFilter)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot, storage=MemoryStorage())
 
 bad_words = ['слово1', 'слово2', 'слово3']
 
@@ -43,40 +41,41 @@ def ban_user(user_id):
     bot.kick_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
     user_rating[user_id] = 0
 
-@bot.message_handler(commands=['start'])
-def handle_start(message):
+@dp.message_handler(commands=['start'])
+async def handle_start(message: types.Message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, "Привет! Я телеграм-бот, который поможет тебе избежать использования ненормативной лексики в чате.")
-    bot.send_message(chat_id, f"Ваш рейтинг: {calculate_user_rating(message.from_user.id)}")
+    await message.answer("Привет! Я телеграм-бот, который поможет тебе избежать использования ненормативной лексики в чате.")
+    await message.answer(f"Ваш рейтинг: {calculate_user_rating(message.from_user.id)}")
 
-@bot.message_handler(commands=['help'])
-def handle_help(message):
+@dp.message_handler(commands=['help'])
+async def handle_help(message: types.Message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, "Я могу помочь тебе избежать использования ненормативной лексики в чате. Просто отправь мне сообщение, и я проверю его на содержание ненормативных слов. Если они будут обнаружены, я предупрежу тебя и удалю сообщение.")
+    await message.answer("Я могу помочь тебе избежать использования ненормативной лексики в чате. Просто отправь мне сообщение, и я проверю его на содержание ненормативных слов. Если они будут обнаружены, я предупрежу тебя и удалю сообщение.")
 
-@bot.message_handler(content_types=['text'])
-def handle_message(message):
+@dp.message_handler(content_types=['text'])
+async def handle_message(message: types.Message):
     chat_id = message.chat.id
     message_id = message.message_id
     user_id = message.from_user.id
     text = message.text
     if check_for_bad_words(text):
-        bot.reply_to(message, 'Предупреждение: в вашем сообщении была использована ненормативная лексика')
-        delete_message(chat_id, message_id)
+        await message.reply('Предупреждение: в вашем сообщении была использована ненормативная лексика')
+        await delete_message(chat_id, message_id)
         user_rating[user_id] += 1
-        if user_rating[user_id] >= 3: #если пользователь использует ненормативную лексику более 3 раз, бот банит его на 5 часов
+        if user_rating[user_id] >= 3:
             ban_user(user_id)
-    bot.send_message(chat_id, f"Ваш рейтинг: {calculate_user_rating(user_id)}")
+    await message.answer(f"Ваш рейтинг: {calculate_user_rating(user_id)}")
 
-@bot.message_handler(func=lambda message: True, content_types=['new_chat_members'])
-def handle_new_member(message):
+@dp.message_handler(func=lambda message: True, content_types=['new_chat_members'])
+async def handle_new_member(message: types.Message):
     chat_id = message.chat.id
     new_members = message.new_chat_members
     for member in new_members:
-        bot.send_message(chat_id, f"Добро пожаловать в чат, {member.first_name}! Я помогу тебе избежать использования ненормативной лексики в сообщениях.")
+        await message.answer(f"Добро пожаловать в чат, {member.first_name}! Я помогу тебе избежать использования ненормативной лексики в сообщениях.")
 
 if __name__ == '__main__':
-    bot.polling(none_stop=True)
+    executor.start_polling(dp, skip_updates=True)
+
 
 
 
