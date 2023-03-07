@@ -24,7 +24,7 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 
 user_rating = {}
-apology = ['извини', 'простите', 'я больше так не буду', 'извините', "прости"]
+apology = ['извини', 'простите', 'я больше так не буду', 'извините', "прости",'извени','извените', "сорян"]
 
 def check_for_bad_words(text):
     words = word_tokenize(text.lower())
@@ -84,9 +84,6 @@ async def handle_message(message: types.Message):
         user_rating[user_id] = 0
         await message.reply(f'Ваш рейтинг изменен: {calculate_user_rating(user_id)}. Просим, Вас больше не употреблять ненормативную лексику!')
         
-
-
-
 
 @dp.message_handler(ContentTypeFilter(types.ContentType.NEW_CHAT_MEMBERS))
 async def handle_new_member(message: types.Message):
