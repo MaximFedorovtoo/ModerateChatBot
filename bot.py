@@ -38,8 +38,8 @@ def calculate_user_rating(user_id):
         user_rating[user_id] = 0
     return user_rating[user_id]
 
-def ban_user(user_id, chat_id):
-    bot.kick_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
+def ban_user(user_id, chat_id, message):
+    message.bot.ban_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
     user_rating[user_id] = 0
 
 @dp.message_handler(commands=['start'])
@@ -70,7 +70,8 @@ async def handle_message(message: types.Message):
         await message.reply(f'Предупреждение: в вашем сообщении была использована ненормативная лексика. Ваш рейтинг: {calculate_user_rating(user_id)}. Если он будет достигнут 3, вы будете удалены из чата на 5 часов!')
         await bot.delete_message(chat_id, message_id)
         if user_rating[user_id] >= 3:
-            ban_user(user_id, chat_id)
+            await message.bot.ban_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
+            user_rating[user_id] = 0
             await message.answer("Вы получили бан, ждем вас через 5 часов, надеемся вы перестаните использовать не нормативную лексику")
 
 
