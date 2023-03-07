@@ -78,7 +78,7 @@ async def handle_message(message: types.Message):
         await bot.delete_message(chat_id, message_id)
         if user_rating[user_id] >= 3:
             await message.answer("Вы получили бан, ждем вас через 5 часов, надеемся вы перестаните использовать ненормативную лексику")
-            message.bot.ban_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
+            message.bot.ban_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов + 18000
             user_rating[user_id] = 0
     elif check_for_apology(text):
         user_rating[user_id] = 0
