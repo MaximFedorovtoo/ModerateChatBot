@@ -24,12 +24,19 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 
 user_rating = {}
-
+apology = ['извени', 'простите', 'я больше так не буду', 'извените']
 
 def check_for_bad_words(text):
     words = word_tokenize(text.lower())
     for word in words:
         if word in bad_words:
+            return True
+    return False
+
+def check_for_apology(text):
+    words = word_tokenize(text.lower())
+    for word in words:
+        if word in apology:
             return True
     return False
 
@@ -72,7 +79,10 @@ async def handle_message(message: types.Message):
         if user_rating[user_id] >= 3:
             await message.bot.ban_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
             user_rating[user_id] = 0
-            await message.answer("Вы получили бан, ждем вас через 5 часов, надеемся вы перестаните использовать не нормативную лексику")
+            await message.answer("Вы получили бан, ждем вас через 5 часов, надеемся вы перестаните использовать ненормативную лексику")
+    elif check_for_apology(text):
+        user_rating[user_id] -= 1
+        await message.reply(f'Ваш рейтинг изменен: {calculate_user_rating(user_id)}. Просим, Вас больше не употреблять ненормативную лексику!')
 
 
 
