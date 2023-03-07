@@ -2,6 +2,7 @@ import logging
 import nltk
 import asyncio
 import config
+import bad_words
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -13,16 +14,17 @@ from aiogram import types
 from aiogram.dispatcher.filters import ContentTypeFilter
 
 API_TOKEN = config.TOKEN
-
+bad_words = bad_words.bad_words
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 bot = Bot(token = API_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-bad_words = ['сучка', 'слово2', 'слово3']
+
 
 user_rating = {}
+
 
 def check_for_bad_words(text):
     words = word_tokenize(text.lower())
@@ -31,18 +33,12 @@ def check_for_bad_words(text):
             return True
     return False
 
-def delete_message(chat_id, message_id):
-    try:
-        bot.delete_message(chat_id, message_id)
-    except:
-        pass
-
 def calculate_user_rating(user_id):
     if user_id not in user_rating:
         user_rating[user_id] = 0
     return user_rating[user_id]
 
-def ban_user(user_id):
+def ban_user(user_id, chat_id):
     bot.kick_chat_member(chat_id, user_id, until_date=int(time.time()) + 18000) #бан пользователя на 5 часов
     user_rating[user_id] = 0
 
@@ -57,6 +53,12 @@ async def handle_help(message: types.Message):
     chat_id = message.chat.id
     await message.answer("Я могу помочь тебе избежать использования ненормативной лексики в чате. Просто отправь мне сообщение, и я проверю его на содержание ненормативных слов. Если они будут обнаружены, я предупрежу тебя и удалю сообщение.")
 
+@dp.message_handler(commands=['rating'])
+async def handle_help(message: types.Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    await message.answer(f"Ваш рейтинг: {calculate_user_rating(user_id)}")
+
 @dp.message_handler(content_types=['text'])
 async def handle_message(message: types.Message):
     chat_id = message.chat.id
@@ -64,19 +66,24 @@ async def handle_message(message: types.Message):
     user_id = message.from_user.id
     text = message.text
     if check_for_bad_words(text):
-        await message.reply('Предупреждение: в вашем сообщении была использована ненормативная лексика')
-        await delete_message(chat_id, message_id)
         user_rating[user_id] += 1
+        await message.reply(f'Предупреждение: в вашем сообщении была использована ненормативная лексика. Ваш рейтинг: {calculate_user_rating(user_id)}. Если он будет достигнут 3, вы будете удалены из чата на 5 часов!')
+        await bot.delete_message(chat_id, message_id)
         if user_rating[user_id] >= 3:
-            ban_user(user_id)
-    await message.answer(f"Ваш рейтинг: {calculate_user_rating(user_id)}")
+            ban_user(user_id, chat_id)
+            await message.answer("Вы получили бан, ждем вас через 5 часов, надеемся вы перестаните использовать не нормативную лексику")
+
+
+
 
 @dp.message_handler(ContentTypeFilter(types.ContentType.NEW_CHAT_MEMBERS))
 async def handle_new_member(message: types.Message):
     chat_id = message.chat.id
+    user_id = message.from_user.id
     new_members = message.new_chat_members
     for member in new_members:
         await message.answer(f"Добро пожаловать в чат, {member.first_name}! Я помогу тебе избежать использования ненормативной лексики в сообщениях.")
+        await message.answer(f"Ваш рейтинг: {calculate_user_rating(user_id)}")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
