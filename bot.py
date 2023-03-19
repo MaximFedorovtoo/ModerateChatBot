@@ -2,7 +2,6 @@ import logging
 import nltk
 import asyncio
 import config
-import bad_words
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -14,7 +13,6 @@ from aiogram import types
 from aiogram.dispatcher.filters import ContentTypeFilter
 
 API_TOKEN = config.TOKEN
-bad_words = bad_words.bad_words
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
@@ -24,8 +22,19 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 
 
 user_rating = {}
-apology = ['извини', 'простите', 'я больше так не буду', 'извините', "прости",'извени','извените', "сорян"]
+apology = set()
+bad_words = set()
 
+with open('apology.json', 'r', encoding='utf-8') as file:
+    apology = file.read().split('\n')
+    while '' in apology:
+        apology.remove('')
+   
+with open('bad_words.json', 'r', encoding='utf-8') as file:
+    bad_words = file.read().split('\n')
+    while '' in bad_words:
+        bad_words.remove('')
+   
 def check_for_bad_words(text):
     words = word_tokenize(text.lower())
     for word in words:
@@ -71,10 +80,16 @@ async def handle_message(message: types.Message):
     chat_id = message.chat.id
     message_id = message.message_id
     user_id = message.from_user.id
+    
+    user_name2 = message.from_user.first_name
+   
+    user_name4 = message.from_user.username
+    
     text = message.text
     if check_for_bad_words(text):
         user_rating[user_id] += 1
-        await message.reply(f'Предупреждение: в вашем сообщении была использована ненормативная лексика. Ваш рейтинг: {calculate_user_rating(user_id)}. Если он будет достигнут 3, вы будете удалены из чата на 5 часов!')
+        await message.reply(f'Предупреждение: в вашем сообщении была использована ненормативная лексика. Пользователь {user_name2} @{user_name4}  ваш рейтинг: {calculate_user_rating(user_id)}. Если он будет достигнут 3, вы будете удалены из чата на 5 часов!')
+        time.sleep(5)
         await bot.delete_message(chat_id, message_id)
         if user_rating[user_id] >= 3:
             await message.answer("Вы получили бан, ждем вас через 5 часов, надеемся вы перестаните использовать ненормативную лексику")
@@ -82,7 +97,7 @@ async def handle_message(message: types.Message):
             user_rating[user_id] = 0
     elif check_for_apology(text):
         user_rating[user_id] = 0
-        await message.reply(f'Ваш рейтинг изменен: {calculate_user_rating(user_id)}. Просим, Вас больше не употреблять ненормативную лексику!')
+        await message.answer(f'Ваш рейтинг изменен: {calculate_user_rating(user_id)}. Просим, Вас больше не употреблять ненормативную лексику!')
         
 
 @dp.message_handler(ContentTypeFilter(types.ContentType.NEW_CHAT_MEMBERS))
